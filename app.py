@@ -7,23 +7,85 @@ app = Flask(__name__)
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
+# @app.route("/", methods=("GET", "POST"))
+# def index():
+#     if request.method == "POST":
+#         problem = request.form["problem"]
+#         response = openai.Completion.create(
+#             model="text-davinci-003",
+#             prompt=generate_prompt(problem),
+#             temperature=0.6,
+#             max_tokens=750,
+#         )
+#         return redirect(url_for("index", result=response.choices[0].text))
+
+#     result = request.args.get("result")
+#     return render_template("index.html", result=result)
+
+
 @app.route("/", methods=("GET", "POST"))
 def index():
     if request.method == "POST":
-        animal = request.form["animal"]
-        response = openai.Completion.create(
-            model="text-davinci-003",
-            prompt=generate_prompt(animal),
-            temperature=0.6,
-            max_tokens=500,
-        )
-        return redirect(url_for("index", result=response.choices[0].text))
+        problem = request.form.get("problem")
+        recipe = request.form.get("recipe")
 
-    result = request.args.get("result")
-    return render_template("index.html", result=result)
+        if problem:
+            print("Problem:",problem)
+            response = generate_problem_response(problem)
+            print("Problem Response:", response)
+
+        elif recipe:
+            response = generate_recipe_response(recipe)
+
+        if response:
+            if problem:
+                print("Redirecting to index with problem result:", response)
+
+                return redirect(url_for("index", problem_result=response))
+            elif recipe:
+                print("Redirecting to index with recipe result:", response)
+
+                return redirect(url_for("index", recipe_result=response))
+
+    return render_template("index.html")
+
+@app.route("/problem", methods=("GET", "POST"))
+def handle_problem_form():
+    problem = request.form.get("problem")
+    response = generate_problem_response(problem)
+    return redirect(url_for("index", problem_result=response))
 
 
-def generate_prompt(animal):
+@app.route("/recipe", methods=("GET", "POST"))
+def handle_recipe_form():
+    recipe = request.form.get("recipe")
+    response = generate_recipe_response(recipe)
+    return redirect(url_for("index", recipe_result=response))
+
+
+def generate_problem_response(problem):
+    response = openai.Completion.create(
+        model="text-davinci-003",
+        prompt=generate_prompt(problem),
+        temperature=0.6,
+        max_tokens=250,
+    )
+    return response.choices[0].text
+
+
+def generate_recipe_response(recipe):
+    response = openai.Completion.create(
+        model="text-davinci-003",
+        prompt=generate_prompt(recipe),
+        temperature=0.6,
+        max_tokens=250,
+    )
+    return response.choices[0].text
+
+    # return "This is the recipe response for: " + recipe
+
+
+def generate_prompt(problem):
     return """Give a high level plan for the desired outcome
 
 Outcome: I want to migrate to the cloud
@@ -75,5 +137,121 @@ Remember that optimization is an ongoing process. Regularly assess and fine-tune
 
 Outcome: {}
 High Level Plan:""".format(
-        animal.capitalize()
+        problem.capitalize()
+    )
+
+def generate_prompt(recipe):
+    return """Give a recipe, step by step, including prep time, cooking time and instructions, given a food.
+
+Food: Baked Beans on Toast
+
+Recipe: Certainly! Here's a recipe for Baked Beans on Toast:
+
+Prep Time: 5 minutes
+Cooking Time: 20 minutes
+Total Time: 25 minutes
+Servings: 2
+
+Ingredients:
+- 1 can (15 ounces/425g) baked beans
+- 2 slices of bread (white or whole wheat)
+- Butter or margarine, for spreading
+- Grated cheddar cheese, for topping (optional)
+- Fresh parsley or chives, chopped (optional, for garnish)
+
+Instructions:
+
+1. Preheat your oven to 350°F (175°C).
+
+2. Open the can of baked beans and pour them into a small saucepan. Place the saucepan over medium heat.
+
+3. While the beans heat up, toast the slices of bread to your desired level of crispness. Spread butter or margarine on each slice.
+
+4. Once the baked beans are heated through, remove them from the heat. If desired, you can add some grated cheddar cheese to the beans and stir until melted.
+
+5. Place the buttered toast slices on a baking sheet or oven-safe dish.
+
+6. Spoon the hot baked beans onto the toast, spreading them evenly.
+
+7. If you added cheese to the beans, sprinkle some additional grated cheddar cheese on top.
+
+8. Place the baking sheet or dish in the preheated oven and bake for about 10 minutes, or until the cheese is melted and bubbly (if using).
+
+9. Remove from the oven and let it cool slightly. Sprinkle with chopped parsley or chives for garnish, if desired.
+
+10. Serve the Baked Beans on Toast while still warm. Enjoy this comforting and simple dish as a quick breakfast, lunch, or even a light dinner.
+
+Feel free to adjust the recipe according to your preferences. You can add extra toppings like sliced tomatoes, sautéed mushrooms, or a fried egg on top for added flavor and variety.
+
+Food: Biryani
+Recipe: Certainly! Here's a recipe for Bangladeshi Biryani:
+
+Prep Time: 30 minutes
+Marination Time: 1 hour (optional)
+Cooking Time: 1 hour 30 minutes
+Total Time: 2 hours
+Servings: 6-8
+
+Ingredients:
+For the Rice:
+- 3 cups Basmati rice
+- Water for soaking and boiling
+- 2 bay leaves
+- 4-6 whole cloves
+- 4-6 green cardamom pods
+- 2-inch cinnamon stick
+- Salt to taste
+
+For the Chicken:
+- 2 pounds (1 kg) chicken, cut into pieces
+- 1 cup plain yogurt
+- 2 tablespoons ginger paste
+- 2 tablespoons garlic paste
+- 2 teaspoons red chili powder
+- 1 teaspoon turmeric powder
+- Salt to taste
+
+For the Biryani:
+- 1/2 cup ghee or vegetable oil
+- 2 large onions, thinly sliced
+- 2 teaspoons whole cumin seeds
+- 4-6 green chilies, slit lengthwise
+- 1 cup mixed vegetables (carrots, peas, potatoes), parboiled (optional)
+- 1/2 cup plain yogurt
+- 1 teaspoon garam masala powder
+- 1/2 teaspoon saffron strands, soaked in 2 tablespoons warm milk
+- Fresh cilantro leaves, chopped (for garnish)
+- Fresh mint leaves, chopped (for garnish)
+- Fried onions (for garnish)
+
+Instructions:
+
+1. Wash the Basmati rice under running water until the water runs clear. Soak the rice in water for 30 minutes. Drain and set aside.
+
+2. In a bowl, marinate the chicken with yogurt, ginger paste, garlic paste, red chili powder, turmeric powder, and salt. Let it marinate for at least 1 hour (or overnight in the refrigerator) for enhanced flavor.
+
+3. In a large pot, bring water to a boil. Add the soaked and drained rice along with bay leaves, cloves, cardamom pods, cinnamon stick, and salt. Cook until the rice is 70-80% cooked (still slightly firm). Drain the rice and set aside.
+
+4. In a separate large pan or Dutch oven, heat ghee or vegetable oil over medium heat. Add the sliced onions and sauté until golden brown and crispy. Remove half of the fried onions and set them aside for garnish.
+
+5. To the remaining onions in the pan, add whole cumin seeds and green chilies. Sauté for a minute until fragrant.
+
+6. Add the marinated chicken to the pan and cook on medium heat until the chicken is partially cooked and the spices are well combined, about 10 minutes.
+
+7. If using, add the parboiled mixed vegetables and cook for an additional 5 minutes.
+
+8. Add plain yogurt, garam masala powder, and salt to the pan. Mix well to coat the chicken and vegetables with the yogurt and spices.
+
+9. Layer the partially cooked rice over the chicken mixture. Drizzle the saffron-infused milk over the rice. Sprinkle chopped cilantro and mint leaves on top.
+
+10. Cover the pan tightly with a lid or aluminum foil. Reduce the heat to low and let the biryani cook for 30-40 minutes, allowing the flavors to meld together and the rice to finish cooking.
+
+11. Once done, remove the pan from the heat and let it rest for 10 minutes before gently fluffing the rice with a fork.
+
+12. Garnish the Bangladeshi Biryani with the reserved fried onions. Serve hot and enjoy the flavorful and aromatic biryani!
+
+
+Food: {}
+Recipe:""".format(
+        recipe.capitalize()
     )
