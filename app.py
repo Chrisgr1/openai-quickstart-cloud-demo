@@ -7,47 +7,26 @@ app = Flask(__name__)
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
-# @app.route("/", methods=("GET", "POST"))
-# def index():
-#     if request.method == "POST":
-#         problem = request.form["problem"]
-#         response = openai.Completion.create(
-#             model="text-davinci-003",
-#             prompt=generate_prompt(problem),
-#             temperature=0.6,
-#             max_tokens=750,
-#         )
-#         return redirect(url_for("index", result=response.choices[0].text))
-
-#     result = request.args.get("result")
-#     return render_template("index.html", result=result)
-
-
 @app.route("/", methods=("GET", "POST"))
-def index():
+def index():    
     if request.method == "POST":
-        problem = request.form.get("problem")
-        recipe = request.form.get("recipe")
+        problem = request.form["problem"]
+        recipe = request.form["recipe"]
 
         if problem:
-            print("Problem:",problem)
             response = generate_problem_response(problem)
-            print("Problem Response:", response)
-
+            print("Redirecting to index with problem result:", response)
+            return redirect(url_for("index", problem_result=response))
         elif recipe:
             response = generate_recipe_response(recipe)
+            print("Redirecting to index with recipe result:", response)
+            return redirect(url_for("index", recipe_result=response))
+    else:  # This is a GET request
+        problem_result = request.args.get('problem_result')
+        recipe_result = request.args.get('recipe_result')
+    
+    return render_template("index.html", problem_result=problem_result, recipe_result=recipe_result)
 
-        if response:
-            if problem:
-                print("Redirecting to index with problem result:", response)
-
-                return redirect(url_for("index", problem_result=response))
-            elif recipe:
-                print("Redirecting to index with recipe result:", response)
-
-                return redirect(url_for("index", recipe_result=response))
-
-    return render_template("index.html")
 
 @app.route("/problem", methods=("GET", "POST"))
 def handle_problem_form():
@@ -70,6 +49,7 @@ def generate_problem_response(problem):
         temperature=0.6,
         max_tokens=250,
     )
+    print(response.choices[0].text)
     return response.choices[0].text
 
 
@@ -80,6 +60,7 @@ def generate_recipe_response(recipe):
         temperature=0.6,
         max_tokens=250,
     )
+    print(response.choices[0].text)
     return response.choices[0].text
 
     # return "This is the recipe response for: " + recipe
